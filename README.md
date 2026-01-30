@@ -18,7 +18,7 @@ Inventory:
   "page": 0,
   "size": 1,
   "sort": [
-    "string" // you can use id,itemId,qty,ortype
+    "string" // you can use id,itemId,qty, or  type
   ]
 }
 
