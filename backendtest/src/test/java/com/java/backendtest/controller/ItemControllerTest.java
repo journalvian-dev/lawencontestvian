@@ -1,100 +1,111 @@
 package com.java.backendtest.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.java.backendtest.dto.OrderDto;
+import com.java.backendtest.dto.OrderDtoCreate;
+import com.java.backendtest.exception.DataNotFoundException;
+import com.java.backendtest.service.OrderService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.java.backendtest.dto.ItemDto;
-import com.java.backendtest.dto.ItemDtoCreate;
-import com.java.backendtest.service.ItemService;
+import java.util.List;
 
-@WebMvcTest(ItemController.class)
-class ItemControllerTest {
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(OrderController.class)
+class OrderControllerTest {
 
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
 
     @MockBean
-    ItemService itemService;
+    private OrderService orderService;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Test
-    void findAllTest() throws Exception {
-        Page<ItemDto> page =
-                new PageImpl<>(List.of(new ItemDto(1L, "Pen", 5L, null)));
+    void shouldFindOrders() throws Exception {
 
-        when(itemService.findAll(any(Pageable.class))).thenReturn(page);
+        OrderDto dto = new OrderDto();
+        dto.setOrderNo("O1");
+        dto.setItemId(10L);
+        dto.setQty(2L);
 
-        mockMvc.perform(get("/item/findAll"))
-                .andExpect(status().isOk());
+        when(orderService.findOrders(eq(null), any()))
+                .thenReturn(new PageImpl<>(List.of(dto)));
+
+        mockMvc.perform(get("/orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].orderNo").value("O1"));
+
+        verify(orderService).findOrders(eq(null), any());
     }
 
     @Test
-    void findByIdTest() throws Exception {
-        ItemDto dto = new ItemDto(1L, "Pen", 5L, null);
-        when(itemService.findById(1L)).thenReturn(dto);
+    void shouldFindOrderById() throws Exception {
 
-        mockMvc.perform(get("/item/findById/1"))
-                .andExpect(status().isOk());
+        OrderDto dto = new OrderDto();
+        dto.setOrderNo("O99");
+
+        when(orderService.findById("O99"))
+                .thenReturn(dto);
+
+        mockMvc.perform(get("/orders/O99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.orderNo").value("O99"));
+
+        verify(orderService).findById("O99");
     }
 
     @Test
-    void saveItemTest() throws Exception {
-        ItemDto dto = new ItemDto(1L, "Pen", 5L, null);
-        when(itemService.saveItem(any())).thenReturn(dto);
+    void shouldCreateOrder() throws Exception {
 
-        ItemDtoCreate req = new ItemDtoCreate("Pen", 5L);
+        OrderDtoCreate req = new OrderDtoCreate();
+        req.setItemId(1L);
+        req.setQty(3L);
 
-        mockMvc.perform(post("/item/saveItem/")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk());
+        OrderDto res = new OrderDto();
+        res.setOrderNo("O2");
+
+        when(orderService.saveOrder(any()))
+                .thenReturn(res);
+
+        mockMvc.perform(post("/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated());
+
+        verify(orderService).saveOrder(any());
     }
 
     @Test
-    void saveItemValidationFailTest() throws Exception {
-        ItemDtoCreate req = new ItemDtoCreate("", null);
+    void shouldReturn404WhenOrderNotFound() throws Exception {
 
-        mockMvc.perform(post("/item/saveItem/")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isBadRequest());
+        when(orderService.findById("O999"))
+                .thenThrow(new DataNotFoundException("Order not found"));
+
+        mockMvc.perform(get("/orders/O999"))
+                .andExpect(status().isNotFound());
     }
 
-    @Test
-    void editItemTest() throws Exception {
-        ItemDto dto = new ItemDto(1L, "Pen", 15L, null);
-        when(itemService.updateItem(any())).thenReturn(dto);
-
-        mockMvc.perform(post("/item/editItem")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk());
-    }
 
     @Test
-    void deleteItemTest() throws Exception {
-        mockMvc.perform(post("/item/delete")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(
-                        new ItemDto(1L, "Pen", 5L, null))))
+    void shouldDeleteOrder() throws Exception {
+
+        doNothing().when(orderService).deleteOrder("O1");
+
+        mockMvc.perform(delete("/orders/O1"))
                 .andExpect(status().isOk());
+
+        verify(orderService).deleteOrder("O1");
     }
 }

@@ -7,13 +7,10 @@ import com.java.backendtest.dto.ItemDto;
 import com.java.backendtest.dto.ItemDtoCreate;
 
 public interface ItemService {
-	Page<ItemDto> findAll(Pageable pageable);
-	Page<ItemDto> findByNameSpecific(String name, Pageable pageable);
-    Page<ItemDto> findByNameNonSpecific(String name, Pageable pageable);
+    Page<ItemDto> findItems(String name, Pageable pageable);
 	ItemDto findById(Long id);
-	ItemDto saveItem (ItemDtoCreate itemDto);
-	ItemDto updateItem (ItemDto itemDto);
-	void updateItemForOtherController (ItemDto itemDto);
-	void deleteItem(ItemDto itemDto);
+	ItemDto createItem (ItemDtoCreate itemDto);
+	ItemDto updateItem (Long id, ItemDtoCreate itemDto);
+	void deleteItem(Long id);
 	
 }

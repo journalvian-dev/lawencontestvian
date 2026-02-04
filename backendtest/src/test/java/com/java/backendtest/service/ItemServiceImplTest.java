@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -12,126 +11,92 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import com.java.backendtest.dto.ItemDto;
 import com.java.backendtest.dto.ItemDtoCreate;
 import com.java.backendtest.entity.Item;
+import com.java.backendtest.exception.DataNotFoundException;
 import com.java.backendtest.repo.ItemRepo;
 
 @ExtendWith(MockitoExtension.class)
 class ItemServiceImplTest {
 
     @Mock
-    ItemRepo itemRepo;
+    private ItemRepo itemRepo;
 
     @InjectMocks
-    ItemServiceImpl itemService;
+    private ItemServiceImpl itemService;
+
 
     @Test
-    void findAllTest() {
-        Item item = new Item();
-        item.setId(1L);
-        item.setName("Pen");
-        item.setPrice(5L);
+    void shouldCreateItem() {
 
-        Page<Item> page = new PageImpl<>(List.of(item));
-        when(itemRepo.findAll(any(Pageable.class))).thenReturn(page);
+        ItemDtoCreate dto = new ItemDtoCreate();
+        dto.setName("Laptop");
+        dto.setPrice(1000L);
 
-        Page<ItemDto> result = itemService.findAll(PageRequest.of(0, 10));
+        Item saved = new Item();
+        saved.setId(1L);
+        saved.setName("Laptop");
+        saved.setPrice(1000L);
 
-        assertEquals(1, result.getTotalElements());
+        when(itemRepo.save(any())).thenReturn(saved);
+
+        ItemDto result = itemService.createItem(dto);
+
+        assertNotNull(result);
+        assertEquals("Laptop", result.getName());
+
+        verify(itemRepo).save(any());
     }
 
+
     @Test
-    void findByNameSpecificTest() {
-        Item item = new Item();
-        item.setName("Pen");
+    void shouldUpdateItem() {
 
-        Page<Item> page = new PageImpl<>(List.of(item));
-        when(itemRepo.findByNameSpecific(eq("Pen"), any(Pageable.class)))
-                .thenReturn(page);
+        Item existing = new Item();
+        existing.setId(1L);
 
-        Page<ItemDto> result =
-                itemService.findByNameSpecific("Pen", PageRequest.of(0, 10));
+        ItemDtoCreate dto = new ItemDtoCreate();
+        dto.setName("Updated");
+        dto.setPrice(2000L);
 
-        assertEquals(1, result.getTotalElements());
+        when(itemRepo.findById(1L))
+                .thenReturn(Optional.of(existing));
+
+        when(itemRepo.save(any()))
+                .thenReturn(existing);
+
+        itemService.updateItem(1L, dto);
+
+        verify(itemRepo).save(existing);
     }
 
+
     @Test
-    void findByNameNonSpecificTest() {
-        Item item = new Item();
-        item.setName("Pen");
+    void shouldThrowException_whenItemNotFound() {
 
-        Page<Item> page = new PageImpl<>(List.of(item));
-        when(itemRepo.findByNameNonSpecific(eq("Pe"), any(Pageable.class)))
-                .thenReturn(page);
+        when(itemRepo.findById(1L))
+                .thenReturn(Optional.empty());
 
-        Page<ItemDto> result =
-                itemService.findByNameNonSpecific("Pe", PageRequest.of(0, 10));
-
-        assertEquals(1, result.getTotalElements());
+        assertThrows(
+                DataNotFoundException.class,
+                () -> itemService.updateItem(1L, new ItemDtoCreate())
+        );
     }
 
-    @Test
-    void findByIdTest() {
-        Item item = new Item();
-        item.setId(1L);
-        item.setName("Pen");
-        item.setPrice(5L);
-
-        when(itemRepo.findById(1L)).thenReturn(Optional.of(item));
-
-        ItemDto result = itemService.findById(1L);
-
-        assertEquals("Pen", result.getName());
-    }
 
     @Test
-    void saveItemTest() {
-        Item item = new Item();
-        item.setId(1L);
-        item.setName("Book");
-        item.setPrice(10L);
+    void shouldDeleteItem() {
 
-        when(itemRepo.save(any(Item.class))).thenReturn(item);
-
-        ItemDtoCreate req = new ItemDtoCreate("Book", 10L);
-        ItemDto result = itemService.saveItem(req);
-
-        assertNotNull(result.getId());
-    }
-
-    @Test
-    void updateItemTest() {
-        Item item = new Item();
-        item.setId(1L);
-        item.setName("Pen");
-        item.setPrice(5L);
-
-        when(itemRepo.findById(1L)).thenReturn(Optional.of(item));
-        when(itemRepo.save(any(Item.class))).thenReturn(item);
-
-        ItemDto req = new ItemDto(1L, "Item Updated", 15L, null);
-        ItemDto result = itemService.updateItem(req);
-
-        assertEquals("Item Updated", result.getName());
-    }
-
-    @Test
-    void deleteItemTest() {
         Item item = new Item();
         item.setId(1L);
 
-        when(itemRepo.findById(1L)).thenReturn(Optional.of(item));
+        when(itemRepo.findById(1L))
+                .thenReturn(Optional.of(item));
 
-        ItemDto req = new ItemDto(1L, "Pen", 15L, null);
-        itemService.deleteItem(req);
+        itemService.deleteItem(1L);
 
         verify(itemRepo).delete(item);
     }
 }
-

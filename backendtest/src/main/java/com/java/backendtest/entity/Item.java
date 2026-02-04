@@ -30,9 +30,6 @@ public class Item {
     @ToString.Include
 	private Long price;
 	
-    @ToString.Include
-	private Long stock;
-	
     @OneToMany(mappedBy = "item")
     @ToString.Exclude
     private List<Inventory> inventories;
