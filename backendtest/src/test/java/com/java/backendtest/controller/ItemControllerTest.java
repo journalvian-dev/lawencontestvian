@@ -1,10 +1,9 @@
 package com.java.backendtest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.java.backendtest.dto.OrderDto;
-import com.java.backendtest.dto.OrderDtoCreate;
-import com.java.backendtest.exception.DataNotFoundException;
-import com.java.backendtest.service.OrderService;
+import com.java.backendtest.dto.ItemDto;
+import com.java.backendtest.dto.ItemDtoCreate;
+import com.java.backendtest.service.ItemService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,92 +19,73 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(OrderController.class)
-class OrderControllerTest {
+@WebMvcTest(ItemController.class)
+class ItemControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private OrderService orderService;
+    private ItemService itemService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
-    void shouldFindOrders() throws Exception {
+    void shouldFindItems() throws Exception {
 
-        OrderDto dto = new OrderDto();
-        dto.setOrderNo("O1");
-        dto.setItemId(10L);
-        dto.setQty(2L);
+        ItemDto dto = new ItemDto();
+        dto.setId(1L);
+        dto.setName("Laptop");
 
-        when(orderService.findOrders(eq(null), any()))
+        when(itemService.findItems(eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(dto)));
 
-        mockMvc.perform(get("/orders"))
+        mockMvc.perform(get("/items"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].orderNo").value("O1"));
-
-        verify(orderService).findOrders(eq(null), any());
+                .andExpect(jsonPath("$.content[0].name").value("Laptop"));
     }
 
     @Test
-    void shouldFindOrderById() throws Exception {
+    void shouldCreateItem() throws Exception {
 
-        OrderDto dto = new OrderDto();
-        dto.setOrderNo("O99");
+        ItemDtoCreate req = new ItemDtoCreate();
+        req.setName("Mouse");
+        req.setPrice(50000L);
 
-        when(orderService.findById("O99"))
-                .thenReturn(dto);
+        ItemDto res = new ItemDto();
+        res.setId(10L);
 
-        mockMvc.perform(get("/orders/O99"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.orderNo").value("O99"));
+        when(itemService.createItem(any())).thenReturn(res);
 
-        verify(orderService).findById("O99");
-    }
-
-    @Test
-    void shouldCreateOrder() throws Exception {
-
-        OrderDtoCreate req = new OrderDtoCreate();
-        req.setItemId(1L);
-        req.setQty(3L);
-
-        OrderDto res = new OrderDto();
-        res.setOrderNo("O2");
-
-        when(orderService.saveOrder(any()))
-                .thenReturn(res);
-
-        mockMvc.perform(post("/orders")
+        mockMvc.perform(post("/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated());
-
-        verify(orderService).saveOrder(any());
     }
 
     @Test
-    void shouldReturn404WhenOrderNotFound() throws Exception {
+    void shouldUpdateItem() throws Exception {
 
-        when(orderService.findById("O999"))
-                .thenThrow(new DataNotFoundException("Order not found"));
+        ItemDtoCreate req = new ItemDtoCreate();
+        req.setName("Keyboard");
+        req.setPrice(30L);
 
-        mockMvc.perform(get("/orders/O999"))
-                .andExpect(status().isNotFound());
-    }
+        when(itemService.updateItem(eq(1L), any()))
+                .thenReturn(new ItemDto());
 
-
-    @Test
-    void shouldDeleteOrder() throws Exception {
-
-        doNothing().when(orderService).deleteOrder("O1");
-
-        mockMvc.perform(delete("/orders/O1"))
+        mockMvc.perform(put("/items/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());
+    }
 
-        verify(orderService).deleteOrder("O1");
+    @Test
+    void shouldDeleteItem() throws Exception {
+
+        doNothing().when(itemService).deleteItem(1L);
+
+        mockMvc.perform(delete("/items/1"))
+                .andExpect(status().isOk());
     }
 }

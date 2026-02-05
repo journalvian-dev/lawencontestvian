@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.java.backendtest.dto.InventoryDto;
 import com.java.backendtest.enums.InventoryType;
 import com.java.backendtest.service.InventoryService;
+import com.java.backendtest.service.ItemService;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -39,6 +40,9 @@ class InventoryControllerTest {
 
     @MockBean
     private InventoryService inventoryService;
+    
+    @MockBean
+    private ItemService itemService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -90,8 +94,8 @@ class InventoryControllerTest {
                 .thenReturn(res);
 
         mockMvc.perform(post("/inventories")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated());
 
         verify(inventoryService).createInventory(any());
