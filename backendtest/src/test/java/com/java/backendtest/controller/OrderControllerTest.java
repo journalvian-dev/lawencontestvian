@@ -1,8 +1,14 @@
 package com.java.backendtest.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -12,11 +18,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.java.backendtest.dto.OrderDto;
+import com.java.backendtest.dto.OrderDtoCreate;
+import com.java.backendtest.exception.DataNotFoundException;
 import com.java.backendtest.service.OrderService;
 
 @WebMvcTest(OrderController.class)
@@ -28,88 +36,83 @@ class OrderControllerTest {
     @MockBean
     private OrderService orderService;
 
-    @Test
-    void findAllTest() throws Exception {
-        when(orderService.findAll(PageRequest.of(0, 20)))
-                .thenReturn(new PageImpl<>(List.of()));
-
-        mockMvc.perform(get("/order/findAll"))
-                .andExpect(status().isOk());
-    }
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
-    void findByItemIdTest() throws Exception {
-        when(orderService.findByItemId(1L, PageRequest.of(0, 20)))
-                .thenReturn(new PageImpl<>(List.of()));
+    void shouldFindOrders() throws Exception {
 
-        mockMvc.perform(
-                get("/order/findByItemId")
-                        .param("itemId", "1")
-        ).andExpect(status().isOk());
-    }
-
-    @Test
-    void findByIdTest() throws Exception {
         OrderDto dto = new OrderDto();
         dto.setOrderNo("O1");
+        dto.setItemId(10L);
+        dto.setQty(2L);
 
-        when(orderService.findById("O1")).thenReturn(dto);
+        when(orderService.findOrders(eq(null), any()))
+                .thenReturn(new PageImpl<>(List.of(dto)));
 
-        mockMvc.perform(get("/order/String id/O1"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].orderNo").value("O1"));
+
+        verify(orderService).findOrders(eq(null), any());
     }
 
     @Test
-    void saveOrderTest() throws Exception {
-        OrderDto dto = new OrderDto();
-        dto.setOrderNo("O1");
+    void shouldFindOrderById() throws Exception {
 
-        when(orderService.saveOrder(org.mockito.ArgumentMatchers.any()))
+        OrderDto dto = new OrderDto();
+        dto.setOrderNo("O99");
+
+        when(orderService.findById("O99"))
                 .thenReturn(dto);
 
-        mockMvc.perform(
-                post("/order/saveOrder")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {
-                              "itemId": 1,
-                              "qty": 2
-                            }
-                        """)
-        ).andExpect(status().isOk());
+        mockMvc.perform(get("/orders/O99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.orderNo").value("O99"));
+
+        verify(orderService).findById("O99");
     }
 
     @Test
-    void editOrderTest() throws Exception {
-        OrderDto dto = new OrderDto();
-        dto.setOrderNo("O1");
+    void shouldCreateOrder() throws Exception {
 
-        when(orderService.updateOrder(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(dto);
+        OrderDtoCreate req = new OrderDtoCreate();
+        req.setItemId(1L);
+        req.setQty(3L);
 
-        mockMvc.perform(
-                post("/order/editOrder")
+        OrderDto res = new OrderDto();
+        res.setOrderNo("O2");
+
+        when(orderService.saveOrder(any()))
+                .thenReturn(res);
+
+        mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {
-                              "orderNo": "O1",
-                              "itemId": 1,
-                              "qty": 3
-                            }
-                        """)
-        ).andExpect(status().isOk());
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated());
+
+        verify(orderService).saveOrder(any());
     }
 
     @Test
-    void deleteOrderTest() throws Exception {
-        mockMvc.perform(
-                post("/order/delete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {
-                              "orderNo": "O1"
-                            }
-                        """)
-        ).andExpect(status().isOk());
+    void shouldReturn404WhenOrderNotFound() throws Exception {
+
+        when(orderService.findById("O999"))
+                .thenThrow(new DataNotFoundException("Order not found"));
+
+        mockMvc.perform(get("/orders/O999"))
+                .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    void shouldDeleteOrder() throws Exception {
+
+        doNothing().when(orderService).deleteOrder("O1");
+
+        mockMvc.perform(delete("/orders/O1"))
+                .andExpect(status().isOk());
+
+        verify(orderService).deleteOrder("O1");
     }
 }

@@ -21,6 +21,4 @@ public class ItemDto {
 	@NotNull(message = "Price must be filled")
 	@Positive(message = "Price must be greater than 0")
 	private Long price;
-	
-	private Long stock;
 }

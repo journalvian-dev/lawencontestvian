@@ -1,100 +1,91 @@
 package com.java.backendtest.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.java.backendtest.dto.ItemDto;
 import com.java.backendtest.dto.ItemDtoCreate;
 import com.java.backendtest.service.ItemService;
 
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 @WebMvcTest(ItemController.class)
 class ItemControllerTest {
 
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
 
     @MockBean
-    ItemService itemService;
+    private ItemService itemService;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Test
-    void findAllTest() throws Exception {
-        Page<ItemDto> page =
-                new PageImpl<>(List.of(new ItemDto(1L, "Pen", 5L, null)));
+    void shouldFindItems() throws Exception {
 
-        when(itemService.findAll(any(Pageable.class))).thenReturn(page);
+        ItemDto dto = new ItemDto();
+        dto.setId(1L);
+        dto.setName("Laptop");
 
-        mockMvc.perform(get("/item/findAll"))
+        when(itemService.findItems(eq(null), any()))
+                .thenReturn(new PageImpl<>(List.of(dto)));
+
+        mockMvc.perform(get("/items"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Laptop"));
+    }
+
+    @Test
+    void shouldCreateItem() throws Exception {
+
+        ItemDtoCreate req = new ItemDtoCreate();
+        req.setName("Mouse");
+        req.setPrice(50000L);
+
+        ItemDto res = new ItemDto();
+        res.setId(10L);
+
+        when(itemService.createItem(any())).thenReturn(res);
+
+        mockMvc.perform(post("/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void shouldUpdateItem() throws Exception {
+
+        ItemDtoCreate req = new ItemDtoCreate();
+        req.setName("Keyboard");
+        req.setPrice(30L);
+
+        when(itemService.updateItem(eq(1L), any()))
+                .thenReturn(new ItemDto());
+
+        mockMvc.perform(put("/items/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void findByIdTest() throws Exception {
-        ItemDto dto = new ItemDto(1L, "Pen", 5L, null);
-        when(itemService.findById(1L)).thenReturn(dto);
+    void shouldDeleteItem() throws Exception {
 
-        mockMvc.perform(get("/item/findById/1"))
-                .andExpect(status().isOk());
-    }
+        doNothing().when(itemService).deleteItem(1L);
 
-    @Test
-    void saveItemTest() throws Exception {
-        ItemDto dto = new ItemDto(1L, "Pen", 5L, null);
-        when(itemService.saveItem(any())).thenReturn(dto);
-
-        ItemDtoCreate req = new ItemDtoCreate("Pen", 5L);
-
-        mockMvc.perform(post("/item/saveItem/")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void saveItemValidationFailTest() throws Exception {
-        ItemDtoCreate req = new ItemDtoCreate("", null);
-
-        mockMvc.perform(post("/item/saveItem/")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void editItemTest() throws Exception {
-        ItemDto dto = new ItemDto(1L, "Pen", 15L, null);
-        when(itemService.updateItem(any())).thenReturn(dto);
-
-        mockMvc.perform(post("/item/editItem")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void deleteItemTest() throws Exception {
-        mockMvc.perform(post("/item/delete")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(
-                        new ItemDto(1L, "Pen", 5L, null))))
+        mockMvc.perform(delete("/items/1"))
                 .andExpect(status().isOk());
     }
 }
