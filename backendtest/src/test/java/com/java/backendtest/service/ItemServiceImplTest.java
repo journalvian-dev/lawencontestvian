@@ -24,6 +24,9 @@ class ItemServiceImplTest {
     @Mock
     private ItemRepo itemRepo;
 
+    @Mock
+    private InventoryService inventoryService;
+
     @InjectMocks
     private ItemServiceImpl itemService;
 
@@ -41,11 +44,13 @@ class ItemServiceImplTest {
         saved.setPrice(1000L);
 
         when(itemRepo.save(any())).thenReturn(saved);
+        when(inventoryService.calculateStock(any())).thenReturn(0L);
 
         ItemDto result = itemService.createItem(dto);
 
         assertNotNull(result);
         assertEquals("Laptop", result.getName());
+        assertEquals(0L, result.getStock());
 
         verify(itemRepo).save(any());
     }

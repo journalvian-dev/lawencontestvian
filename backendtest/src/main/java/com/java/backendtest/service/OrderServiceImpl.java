@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import com.java.backendtest.exception.InsufficientStockException;
 import com.java.backendtest.repo.InventoryRepo;
 import com.java.backendtest.repo.ItemRepo;
 import com.java.backendtest.repo.OrderRepo;
+import com.java.backendtest.spec.OrderSpecification;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -34,9 +36,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Page<OrderDto> findOrders(Long itemId, Pageable pageable) {
 
-        Page<Order> orders = (itemId == null)
-                ? orderRepo.findAll(pageable)
-                : orderRepo.findByItemId(itemId, pageable);
+        Specification<Order> spec =
+                Specification.where(
+                    OrderSpecification.hasItemId(itemId)
+                );
+
+        Page<Order> orders =
+                orderRepo.findAll(spec, pageable);
 
         return orders.map(this::convertToDto);
     }

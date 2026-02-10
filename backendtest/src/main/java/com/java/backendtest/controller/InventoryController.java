@@ -1,5 +1,7 @@
 package com.java.backendtest.controller;
 
+import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,29 +37,53 @@ public class InventoryController {
 	
 	
 	@GetMapping
-	public ResponseEntity<Page<InventoryDto>> findInventories(@RequestParam(required = false) Long itemId, Pageable pageable){
-		return ResponseEntity.ok(inventoryService.findInventories(itemId, pageable));
+	public ResponseEntity<ApiResponse<Page<InventoryDto>>> findInventories(@RequestParam(required = false) Long itemId, Pageable pageable){
+		Page<InventoryDto> data = inventoryService.findInventories(itemId, pageable);
+		return ResponseEntity.ok(new ApiResponse<>(
+				"Items fetched successfully",
+				data,
+				200,
+				Instant.now()));
 	}
 	
 	@GetMapping("/{id}")
 	public ResponseEntity<ApiResponse<InventoryDto>> findById(@PathVariable Long id) {
-		return ResponseEntity.ok(new ApiResponse<>("Inventory found",inventoryService.findById(id)));
+		InventoryDto data = inventoryService.findById(id);
+		return ResponseEntity.ok(new ApiResponse<>(
+				"Inventory found",
+				data,
+				200,
+				Instant.now()));
 	}
 	
 	@PostMapping
-	public ResponseEntity<InventoryDto> createInventory(@Valid @RequestBody InventoryDtoCreate dto){
-			return ResponseEntity.status(HttpStatus.CREATED).body(inventoryService.createInventory(dto));
+	public ResponseEntity<ApiResponse<InventoryDto>> createInventory(@Valid @RequestBody InventoryDtoCreate dto){
+		InventoryDto data = inventoryService.createInventory(dto);
+		return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(
+				"Item saved successfully",
+				data,
+				201,
+				Instant.now()));
 	}
 
 	
 	@PutMapping("/{id}")
 	public ResponseEntity<ApiResponse<InventoryDto>> editInventory (@PathVariable Long id, @Valid @RequestBody InventoryDtoCreate inventDto) {
-		return ResponseEntity.ok(new ApiResponse<>("Inventory edited successfully",inventoryService.updateInventory(id, inventDto)));
+		InventoryDto data = inventoryService.updateInventory(id, inventDto);
+		return ResponseEntity.ok(new ApiResponse<>(
+				"Inventory edited successfully",
+				data,
+				200,
+				Instant.now()));
 	}
 	
 	@DeleteMapping("/{id}")
 	public ResponseEntity<ApiResponse<Void>> deleteInventory (@PathVariable Long id) {
 		inventoryService.deleteInventory(id);
-		return ResponseEntity.ok(new ApiResponse<>("Inventory deleted successfully", null));
+		return ResponseEntity.ok(new ApiResponse<>(
+				"Inventory deleted successfully",
+				null,
+				200,
+				Instant.now()));
 	}
 }

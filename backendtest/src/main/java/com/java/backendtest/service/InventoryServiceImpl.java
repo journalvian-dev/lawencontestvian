@@ -1,12 +1,14 @@
 package com.java.backendtest.service;
 import com.java.backendtest.repo.InventoryRepo;
 import com.java.backendtest.repo.ItemRepo;
+import com.java.backendtest.spec.InventorySpecification;
 
 import jakarta.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.java.backendtest.dto.InventoryDto;
@@ -29,11 +31,15 @@ public class InventoryServiceImpl implements InventoryService{
     @Override
     public Page<InventoryDto> findInventories(Long itemId, Pageable pageable) {
 
-    	Page<Inventory> inventories = (itemId == null)
-    			? inventoryRepo.findAll(pageable)
-    			: inventoryRepo.findByItemId(itemId, pageable);
-    	
-    	return inventories.map(this::convertEntityToDTO);
+        Specification<Inventory> spec =
+                Specification.where(
+                    InventorySpecification.hasItemId(itemId)
+                );
+
+        Page<Inventory> inventories =
+                inventoryRepo.findAll(spec, pageable);
+
+        return inventories.map(this::convertEntityToDTO);
     }
 
     @Override
@@ -84,6 +90,11 @@ public class InventoryServiceImpl implements InventoryService{
                 .orElseThrow(() -> new DataNotFoundException("Inventory not found"));
 
         inventoryRepo.delete(entity);
+    }
+    
+    @Override
+    public Long calculateStock (Long itemID) {
+    	return inventoryRepo.calculateStock(itemID);
     }
 
 
@@ -138,4 +149,6 @@ public class InventoryServiceImpl implements InventoryService{
 
         return dto;
     }
+    
+
 }

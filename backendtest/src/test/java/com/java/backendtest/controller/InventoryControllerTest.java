@@ -61,7 +61,7 @@ class InventoryControllerTest {
 
         mockMvc.perform(get("/inventories"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1));
+                .andExpect(jsonPath("$.data.content[0].id").value(1));
 
         verify(inventoryService).findInventories(eq(null), any());
     }
@@ -133,4 +133,6 @@ class InventoryControllerTest {
 
         verify(inventoryService).deleteInventory(1L);
     }
+    
+    
 }

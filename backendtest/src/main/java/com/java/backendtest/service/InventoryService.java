@@ -12,6 +12,6 @@ public interface InventoryService {
 	InventoryDto createInventory(InventoryDtoCreate dto);
 	InventoryDto updateInventory(Long id, InventoryDtoCreate dto);
 	void deleteInventory(Long id);
-
+	Long calculateStock (Long itemID);
 
 }
