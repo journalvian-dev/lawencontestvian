@@ -15,9 +15,18 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ItemController.class)
 class ItemControllerTest {
@@ -38,13 +47,35 @@ class ItemControllerTest {
         dto.setId(1L);
         dto.setName("Laptop");
 
-        when(itemService.findItems(eq(null), any()))
+        when(itemService.findItems(isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(dto)));
 
         mockMvc.perform(get("/items"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].name").value("Laptop"));
+                .andExpect(jsonPath("$.data.content[0].name").value("Laptop"));
+
+        verify(itemService).findItems(isNull(), any());
     }
+    
+    @Test
+    void shouldFindItemById() throws Exception {
+
+        ItemDto dto = new ItemDto();
+        dto.setId(1L);
+        dto.setName("Laptop");
+        dto.setPrice(1000L);
+
+        when(itemService.findById(1L))
+                .thenReturn(dto);
+
+        mockMvc.perform(get("/items/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.name").value("Laptop"));
+
+        verify(itemService).findById(1L);
+    }
+
 
     @Test
     void shouldCreateItem() throws Exception {
@@ -56,12 +87,15 @@ class ItemControllerTest {
         ItemDto res = new ItemDto();
         res.setId(10L);
 
-        when(itemService.createItem(any())).thenReturn(res);
+        when(itemService.createItem(any()))
+                .thenReturn(res);
 
         mockMvc.perform(post("/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated());
+
+        verify(itemService).createItem(any());
     }
 
     @Test
@@ -78,6 +112,8 @@ class ItemControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());
+
+        verify(itemService).updateItem(eq(1L), any());
     }
 
     @Test
@@ -87,5 +123,8 @@ class ItemControllerTest {
 
         mockMvc.perform(delete("/items/1"))
                 .andExpect(status().isOk());
+
+        verify(itemService).deleteItem(1L);
     }
 }
+

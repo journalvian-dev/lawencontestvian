@@ -1,5 +1,7 @@
 package com.java.backendtest.controller;
 
+import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,32 +31,53 @@ public class ItemController {
 	@Autowired
 	ItemService itemService;
 	
-
-	
 	@GetMapping
-	public ResponseEntity<Page<ItemDto>> findItems (@RequestParam(required = false) String name, Pageable pageable){
-		return ResponseEntity.ok(itemService.findItems(name, pageable));
+	public ResponseEntity<ApiResponse<Page<ItemDto>>> findItems (@RequestParam(required = false) String name, Pageable pageable){
+		Page<ItemDto> data = itemService.findItems(name, pageable);
+		return ResponseEntity.ok(new ApiResponse<>(
+				"Items fetched successfully",
+				data,
+				200,
+				Instant.now()));
 	}
 	
 	@GetMapping("/{id}")
 	public ResponseEntity<ApiResponse<ItemDto>> findById(@PathVariable Long id) {
-		return ResponseEntity.ok(new ApiResponse<>("Item found",itemService.findById(id)));
+		ItemDto data = itemService.findById(id);
+		return ResponseEntity.ok(new ApiResponse<>(
+				"Item found",
+				data,
+				200,
+				Instant.now()));
 	}
 	
 	@PostMapping
-	public ResponseEntity<ItemDto>  saveItem (@Valid @RequestBody ItemDtoCreate itemDto) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(itemService.createItem(itemDto));
+	public ResponseEntity<ApiResponse<ItemDto>>  saveItem (@Valid @RequestBody ItemDtoCreate itemDto) {
+		ItemDto data =  itemService.createItem(itemDto);
+		return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(
+				"Item saved successfully",
+				data,
+				201,
+				Instant.now()));
 	}
 	
 	@PutMapping("/{id}")
 	public ResponseEntity<ApiResponse<ItemDto>> editItem (@PathVariable Long id,  @Valid @RequestBody ItemDtoCreate itemDto) {
-		return ResponseEntity.ok(new ApiResponse<>("Item edited successfully",itemService.updateItem(id, itemDto)));
+		ItemDto data = itemService.updateItem(id, itemDto);
+		return ResponseEntity.ok(new ApiResponse<>(
+				"Item edited successfully",
+				data,
+				200,
+				Instant.now()));
 	}
 	
 	@DeleteMapping("/{id}")
 	public ResponseEntity<ApiResponse<Void>> deleteItem(@PathVariable Long id) {
 		itemService.deleteItem(id);
-		return ResponseEntity.ok(new ApiResponse<>("Item deleted successfully", null));
+		return ResponseEntity.ok(new ApiResponse<>("Item deleted successfully",
+				null,
+				200,
+				Instant.now()));
 	}
 
 }

@@ -3,6 +3,7 @@ package com.java.backendtest.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,21 +12,29 @@ import com.java.backendtest.dto.ItemDtoCreate;
 import com.java.backendtest.entity.Item;
 import com.java.backendtest.exception.DataNotFoundException;
 import com.java.backendtest.repo.ItemRepo;
+import com.java.backendtest.spec.ItemSpecification;
 
 @Service
 public class ItemServiceImpl implements ItemService {
 
 	@Autowired
     ItemRepo itemRepo;
+	
+	@Autowired
+	InventoryService inventoryService;
 
     @Override
     public Page<ItemDto> findItems(String name, Pageable pageable) {
 
-    	Page <Item> items = (name == null || name.isBlank()) 
-    		 ? itemRepo.findAll(pageable) 
-    	     : itemRepo.findByName(name, pageable);
+        Specification<Item> spec =
+                Specification.where(
+                    ItemSpecification.hasName(name)
+                );
 
-    	  return items.map(this::convertEntityToDTO);
+        Page<Item> items =
+                itemRepo.findAll(spec, pageable);
+
+        return items.map(this::convertEntityToDTO);
     }
 
     @Override
@@ -80,6 +89,7 @@ public class ItemServiceImpl implements ItemService {
         dto.setId(item.getId());
         dto.setName(item.getName());
         dto.setPrice(item.getPrice());
+        dto.setStock(inventoryService.calculateStock(item.getId()));
 
         return dto;
     }
